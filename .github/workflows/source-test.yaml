@@ -32,10 +32,14 @@ on:
       - opened
       - synchronize
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   detect-version:
-    if: ${{ !(forgejo.event_name == 'pull_request' && forgejo.head_ref == 'beta' && forgejo.base_ref == 'main') }}
-    runs-on: epsilon
+    if: ${{ !(github.event_name == 'pull_request' && github.head_ref == 'beta' && github.base_ref == 'main') }}
+    runs-on: ubuntu-latest
     container:
       image: librewolf.dev/librewolf/bsys6:dind
     outputs:
@@ -46,7 +50,7 @@ jobs:
       ff_display: ${{ steps.detect.outputs.FF_DISPLAY }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
 
@@ -54,12 +58,12 @@ jobs:
         id: detect
         run: |
           chmod +x ./scripts/detect-firefox-version.sh
-          ./scripts/detect-firefox-version.sh --channel "${{ (github.ref == 'refs/heads/beta' || github.base_ref == 'beta') && 'latest' || inputs.Version || 'stable' }}" >> $FORGEJO_OUTPUT
+          ./scripts/detect-firefox-version.sh --channel "${{ (github.ref == 'refs/heads/beta' || github.base_ref == 'beta') && 'latest' || inputs.Version || 'stable' }}" >> $GITHUB_OUTPUT
 
           # Read outputs
           while IFS='=' read -r key value; do
             export "$key=$value"
-          done < $FORGEJO_OUTPUT
+          done < $GITHUB_OUTPUT
 
           echo "========================================"
           echo "Firefox Version:"
@@ -74,12 +78,12 @@ jobs:
   test-linux:
     needs: detect-version
     if: inputs.Target == 'all' || inputs.Target == 'linux' || inputs.Target == ''
-    runs-on: epsilon
+    runs-on: ubuntu-latest
     container:
       image: librewolf.dev/librewolf/bsys6:linux
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
 
@@ -94,7 +98,7 @@ jobs:
           make test-linux
 
       - name: Upload artifacts
-        uses: https://data.forgejo.org/forgejo/upload-artifact@v4
+        uses: actions/upload-artifact@v4
         with:
           name: linux-test
           path: |
@@ -105,12 +109,12 @@ jobs:
   test-windows:
     needs: detect-version
     if: inputs.Target == 'all' || inputs.Target == 'windows'
-    runs-on: epsilon
+    runs-on: ubuntu-latest
     container:
       image: librewolf.dev/librewolf/bsys6:windows
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
 
@@ -125,7 +129,7 @@ jobs:
           make test-windows
 
       - name: Upload artifacts
-        uses: https://data.forgejo.org/forgejo/upload-artifact@v4
+        uses: actions/upload-artifact@v4
         with:
           name: windows-test
           path: |
@@ -136,12 +140,12 @@ jobs:
   test-macos:
     needs: detect-version
     if: inputs.Target == 'all' || inputs.Target == 'macos'
-    runs-on: epsilon
+    runs-on: ubuntu-latest
     container:
       image: librewolf.dev/librewolf/bsys6:macos
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           persist-credentials: false
 
@@ -156,7 +160,7 @@ jobs:
           make test-macos
 
       - name: Upload artifacts
-        uses: https://data.forgejo.org/forgejo/upload-artifact@v4
+        uses: actions/upload-artifact@v4
         with:
           name: macos-test
           path: |
